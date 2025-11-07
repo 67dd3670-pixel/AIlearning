@@ -1928,5 +1928,107 @@ class ExerciseManager {
 
 }
 
+    /**
+     * 清空用户指定题型的做题数据
+     */
+    clearUserAnswers(typesToClear) {
+        if (!Array.isArray(typesToClear) || typesToClear.length === 0) {
+            console.log('没有需要清空的题型');
+            return;
+        }
+
+        console.log('需要清空的题型:', typesToClear);
+
+        // 遍历所有已提交的答案，并移除匹配类型的答案
+        const newSubmittedAnswers = {};
+        for (const key in this.submittedAnswers) {
+            let answerType = '';
+            if (key.startsWith('reading-')) answerType = 'reading';
+            else if (key.startsWith('grammar-')) answerType = 'grammar';
+            else if (key.startsWith('fillBlank-')) answerType = 'fillBlank';
+            else if (key.startsWith('shortAnswer-')) answerType = 'shortAnswer';
+
+            // 如果答案类型不在待清除列表中，则保留
+            if (!typesToClear.includes(answerType)) {
+                newSubmittedAnswers[key] = this.submittedAnswers[key];
+            }
+        }
+        this.submittedAnswers = newSubmittedAnswers;
+
+        // 重置指定类型的分数和提交状态
+        typesToClear.forEach(type => {
+            this.submittedTypes.delete(type);
+
+            if (type === 'reading' || type === 'grammar' || type === 'fillBlank') {
+                this.typeScores[type] = { total: 0, correct: 0, score: 0 };
+            } else if (type === 'shortAnswer') {
+                this.typeScores.shortAnswer.submitted = false;
+            }
+        });
+
+        // 清空页面上的输入（选择和文本框）
+        document.querySelectorAll('.exercise-item').forEach(item => {
+            const itemType = item.dataset.type;
+            if (typesToClear.includes(itemType)) {
+                // 清空单选按钮
+                item.querySelectorAll('input[type="radio"]').forEach(radio => {
+                    radio.checked = false;
+                });
+                // 清空文本框
+                item.querySelectorAll('input[type="text"], textarea').forEach(input => {
+                    input.value = '';
+                });
+            }
+        });
+
+        // 重新渲染当前筛选的题目，以刷新显示状态
+        this.renderExercises();
+
+        // 更新总分显示
+        this.updateScoreDisplay();
+
+        // 更新提交按钮状态
+        this.updateSubmitButtonsState();
+
+        // 隐藏并清空结果区域
+        const resultDiv = document.getElementById('exercise-result');
+        if (resultDiv) {
+            resultDiv.innerHTML = '';
+            resultDiv.classList.add('hidden');
+        }
+
+        console.log('指定题型的数据已清空');
+    }
+
+}
+
+    /**
+     * 获取实时总分（不区分提交状态）
+     */
+    getLiveScore() {
+        // 先收集当前所有答案
+        this.collectAnswers();
+
+        let totalCorrect = 0;
+        let totalQuestions = 0;
+
+        // 实时计算所有计分题型的分数
+        ['reading', 'grammar', 'fillBlank'].forEach(type => {
+            const result = this.calculateScoreByType(type);
+            totalCorrect += result.correctAnswers;
+            totalQuestions += result.totalQuestions;
+        });
+
+        const liveScore = totalQuestions > 0 ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+
+        return {
+            score: liveScore,
+            correct: totalCorrect,
+            total: totalQuestions
+        };
+    }
+
+}
+
 // 初始化练习管理器
 window.exerciseManager = new ExerciseManager();
