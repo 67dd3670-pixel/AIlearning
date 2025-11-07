@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>地域抽签器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "微软雅黑", sans-serif;
+        }
+        body {
+            background-color: #87e8de;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 顶部栏 */
+        .top-bar {
+            background-color: #fff5cc;
+            border: 3px solid #ff9f40;
+            border-radius: 12px;
+            padding: 12px 20px;
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .top-bar .logo-decoration {
+            position: absolute;
+            top: -10px;
+            left: 10px;
+            font-size: 40px;
+            color: #ffd600;
+            text-shadow: 0 0 10px #ffeb3b, 0 0 20px #ffc107;
+        }
+        .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            margin-left: 40px;
+        }
+        .info {
+            color: #333;
+            font-size: 16px;
+        }
+
+        /* 抽签主体区 */
+        .draw-container {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 30px;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .draw-title {
+            background: linear-gradient(to right, #f3e5f5, #e1bee7);
+            color: #4a148c;
+            font-size: 22px;
+            font-weight: bold;
+            padding: 10px 20px;
+            border-radius: 20px;
+            display: inline-block;
+            margin-bottom: 30px;
+        }
+
+        /* 结果显示区 */
+        .result-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 40px 20px;
+            margin-bottom: 30px;
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            transition: all 0.3s;
+        }
+        .result-box.empty {
+            color: #999;
+            font-style: italic;
+        }
+
+        /* 按钮样式 */
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+        }
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .btn-draw {
+            background: linear-gradient(to right, #00796b, #004d40);
+            color: #fff;
+        }
+        .btn-reset {
+            background: linear-gradient(to right, #ffb74d, #ff9800);
+            color: #fff;
+        }
+        .btn:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        /* 底部说明 */
+        .footer-hint {
+            background: linear-gradient(to right, #ff8a00, #ff5722);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            border: 2px solid #e64a19;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部栏 -->
+    <div class="top-bar">
+        <div class="logo-decoration">⚡</div>
+        <div class="logo">地域抽签器</div>
+        <div class="info">包含：34个省份 + 20个国家</div>
+    </div>
+
+    <!-- 抽签主体区 -->
+    <div class="draw-container">
+        <div class="draw-title">随机抽取地域</div>
+        
+        <div class="result-box empty" id="resultBox">
+            点击下方按钮开始抽签
+        </div>
+        
+        <div class="btn-group">
+            <button class="btn btn-draw" id="drawBtn">开始抽签</button>
+            <button class="btn btn-reset" id="resetBtn" disabled>重置</button>
+        </div>
+    </div>
+
+    <!-- 底部说明 -->
+    <div class="footer-hint">
+        ⚠️ 规则：点击抽签后将滚动5秒，最终显示一个随机结果
+    </div>
+
+    <script>
+        // 选项列表：中国34个省份 + 常见西方国家
+        const options = [
+            // 中国34个省份/直辖市/自治区/特别行政区
+            "北京市", "天津市", "河北省", "山西省", "内蒙古自治区",
+            "辽宁省", "吉林省", "黑龙江省", "上海市", "江苏省",
+            "浙江省", "安徽省", "福建省", "江西省", "山东省",
+            "河南省", "湖北省", "湖南省", "广东省", "广西壮族自治区",
+            "海南省", "重庆市", "四川省", "贵州省", "云南省",
+            "西藏自治区", "陕西省", "甘肃省", "青海省", "宁夏回族自治区",
+            "新疆维吾尔自治区", "香港特别行政区", "澳门特别行政区", "台湾省",
+            
+            // 常见西方国家
+            "美国", "英国", "法国", "德国", "意大利",
+            "西班牙", "葡萄牙", "俄罗斯", "加拿大", "澳大利亚",
+            "新西兰", "日本", "韩国", "新加坡", "瑞士",
+            "瑞典", "挪威", "荷兰", "比利时", "奥地利"
+        ];
+
+        // DOM元素
+        const resultBox = document.getElementById('resultBox');
+        const drawBtn = document.getElementById('drawBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        let isDrawing = false;
+        let drawInterval;
+
+        // 随机获取一个选项
+        function getRandomOption() {
+            const randomIndex = Math.floor(Math.random() * options.length);
+            return options[randomIndex];
+        }
+
+        // 开始抽签
+        function startDraw() {
+            if (isDrawing) return;
+            
+            isDrawing = true;
+            drawBtn.disabled = true;
+            resetBtn.disabled = true;
+            resultBox.classList.remove('empty');
+            
+            // 每50毫秒切换一次结果，模拟滚动效果
+            let counter = 0;
+            drawInterval = setInterval(() => {
+                resultBox.textContent = getRandomOption();
+                counter++;
+                
+                // 5秒后停止（50ms * 100 = 5000ms）
+                if (counter >= 100) {
+                    clearInterval(drawInterval);
+                    isDrawing = false;
+                    resetBtn.disabled = false;
+                }
+            }, 50);
+        }
+
+        // 重置抽签
+        function resetDraw() {
+            resultBox.textContent = "点击下方按钮开始抽签";
+            resultBox.classList.add('empty');
+            resetBtn.disabled = true;
+            drawBtn.disabled = false;
+        }
+
+        // 事件监听
+        drawBtn.addEventListener('click', startDraw);
+        resetBtn.addEventListener('click', resetDraw);
+    </script>
+</body>
+</html>
